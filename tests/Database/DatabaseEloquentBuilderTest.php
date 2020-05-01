@@ -607,6 +607,21 @@ class DatabaseEloquentBuilderTest extends TestCase
         $builder->getQuery()->shouldReceive('insert')->once()->with(['bar'])->andReturn('foo');
 
         $this->assertEquals('foo', $builder->insert(['bar']));
+
+        $builder = $this->getBuilder();
+        $builder->getQuery()->shouldReceive('insertOrIgnore')->once()->with(['bar'])->andReturn('foo');
+
+        $this->assertEquals('foo', $builder->insertOrIgnore(['bar']));
+
+        $builder = $this->getBuilder();
+        $builder->getQuery()->shouldReceive('insertGetId')->once()->with(['bar'])->andReturn('foo');
+
+        $this->assertEquals('foo', $builder->insertGetId(['bar']));
+
+        $builder = $this->getBuilder();
+        $builder->getQuery()->shouldReceive('insertUsing')->once()->with(['bar'], 'baz')->andReturn('foo');
+
+        $this->assertEquals('foo', $builder->insertUsing(['bar'], 'baz'));
     }
 
     public function testQueryScopes()
@@ -1163,6 +1178,24 @@ class DatabaseEloquentBuilderTest extends TestCase
 
         $result = $builder->update(['foo' => 'bar']);
         $this->assertEquals(1, $result);
+    }
+
+    public function testUpdateWithAlias()
+    {
+        Carbon::setTestNow($now = '2017-10-10 10:10:10');
+
+        $query = new BaseBuilder(m::mock(ConnectionInterface::class), new Grammar, m::mock(Processor::class));
+        $builder = new Builder($query);
+        $model = new EloquentBuilderTestStub;
+        $this->mockConnectionForModel($model, '');
+        $builder->setModel($model);
+        $builder->getConnection()->shouldReceive('update')->once()
+            ->with('update "table" as "alias" set "foo" = ?, "alias"."updated_at" = ?', ['bar', $now])->andReturn(1);
+
+        $result = $builder->from('table as alias')->update(['foo' => 'bar']);
+        $this->assertEquals(1, $result);
+
+        Carbon::setTestNow(null);
     }
 
     protected function mockConnectionForModel($model, $database)
